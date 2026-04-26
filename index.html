@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>decode.ai — what did they actually mean?</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c26;
+    --border: #2a2a38; --accent: #c8f542; --accent2: #ff6b9d;
+    --accent3: #6b9dff; --text: #f0f0f8; --text2: #8888aa;
+    --text3: #555570; --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+  .orb { position: fixed; border-radius: 50%; filter: blur(130px); pointer-events: none; z-index: 0; }
+  .o1 { width: 500px; height: 500px; background: rgba(200,245,66,0.06); top: -200px; right: -100px; }
+  .o2 { width: 400px; height: 400px; background: rgba(255,107,157,0.05); bottom: -100px; left: -100px; }
+
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2rem; border-bottom: 0.5px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.85); backdrop-filter: blur(20px);
+  }
+  .nav-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; }
+  .nav-logo span { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .usage-pill {
+    background: var(--surface2); border: 0.5px solid var(--border);
+    border-radius: 999px; padding: 5px 14px; font-size: 12px; color: var(--text2);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .usage-dots { display: flex; gap: 4px; }
+  .udot { width: 8px; height: 8px; border-radius: 50%; transition: all 0.3s; }
+  .udot.used { background: var(--accent); }
+  .udot.empty { background: var(--surface); border: 1px solid var(--border); }
+  .nav-pro {
+    background: var(--accent); color: #0a0a0f; border: none;
+    border-radius: 999px; padding: 7px 18px;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .nav-pro:hover { box-shadow: 0 4px 20px rgba(200,245,66,0.3); transform: translateY(-1px); }
+
+  .container { max-width: 680px; margin: 0 auto; padding: 3rem 1.25rem 5rem; position: relative; z-index: 1; }
+
+  .header { text-align: center; margin-bottom: 2.5rem; }
+  .logo-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(200,245,66,0.08); border: 0.5px solid rgba(200,245,66,0.2);
+    border-radius: 999px; padding: 5px 16px; font-size: 12px; color: var(--accent);
+    font-family: 'Syne', sans-serif; font-weight: 600; letter-spacing: 0.06em; margin-bottom: 1.2rem;
+  }
+  .badge-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.4rem, 7vw, 3.6rem); font-weight: 800; line-height: 1.0; letter-spacing: -0.035em; margin-bottom: 0.75rem; }
+  h1 .accent { color: var(--accent); }
+  .sub { font-size: 15px; color: var(--text2); line-height: 1.65; font-weight: 300; max-width: 420px; margin: 0 auto; }
+
+  .social-proof {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 999px; padding: 7px 16px 7px 7px; margin-top: 1.2rem;
+  }
+  .sp-avatars { display: flex; }
+  .sp-av {
+    width: 26px; height: 26px; border-radius: 50%; font-size: 11px; font-weight: 700;
+    font-family: 'Syne', sans-serif; display: flex; align-items: center; justify-content: center;
+    margin-left: -6px; border: 2px solid var(--surface); color: white;
+  }
+  .sp-av:first-child { margin-left: 0; }
+  .sp-text { font-size: 12px; color: var(--text2); line-height: 1.3; }
+  .sp-count { font-weight: 700; color: var(--text); font-family: 'Syne', sans-serif; }
+  .sp-stars { font-size: 11px; color: #ffd64f; margin-top: 1px; }
+  .sp-stars span { color: var(--text3); }
+
+  .input-box { margin-bottom: 1.5rem; }
+  .lbl { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; display: block; }
+  textarea {
+    width: 100%; background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 300; line-height: 1.65; padding: 1.1rem 1.25rem;
+    resize: none; min-height: 130px; outline: none; transition: all 0.2s;
+  }
+  textarea:focus { box-shadow: 0 0 0 3px rgba(200,245,66,0.07); }
+  textarea::placeholder { color: var(--text3); }
+
+  .who-row { display: flex; gap: 7px; flex-wrap: wrap; margin: 1rem 0; }
+  .who-chip {
+    padding: 7px 15px; border-radius: 999px; border: 0.5px solid var(--border);
+    background: var(--surface); color: var(--text2); font-size: 13px; cursor: pointer;
+    transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+  }
+  .who-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .who-chip.sel { background: rgba(200,245,66,0.1); border-color: var(--accent); color: var(--accent); }
+
+  .decode-btn {
+    width: 100%; padding: 1rem; background: var(--accent); color: #0a0a0f;
+    border: none; border-radius: var(--radius); font-family: 'Syne', sans-serif;
+    font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .decode-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(200,245,66,0.25); }
+  .decode-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .loading { display: none; text-align: center; padding: 2.5rem 1rem; }
+  .loading.show { display: block; }
+  .loading-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 12px; }
+  .loading-dots span { width: 10px; height: 10px; border-radius: 50%; animation: bounce 0.8s ease infinite; }
+  .loading-dots span:nth-child(1) { background: var(--accent); }
+  .loading-dots span:nth-child(2) { background: var(--accent2); animation-delay: 0.15s; }
+  .loading-dots span:nth-child(3) { background: var(--accent3); animation-delay: 0.3s; }
+  .loading-txt { font-size: 13px; color: var(--text2); font-weight: 300; }
+
+  .results { display: none; margin-top: 2rem; }
+  .results.show { display: block; animation: fadeUp 0.4s ease both; }
+
+  .divider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; }
+  .divider-row::before, .divider-row::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+  .divider-row span { font-size: 11px; font-family: 'Syne', sans-serif; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
+
+  .decode-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 1.4rem 1.5rem; margin-bottom: 1rem;
+    position: relative; overflow: hidden;
+  }
+  .decode-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .card-lbl { font-size: 10px; font-family: 'Syne', sans-serif; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .card-text { font-size: 15px; line-height: 1.65; color: var(--text); font-weight: 300; }
+
+  .vibes { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); }
+  .vibe { font-size: 12px; padding: 3px 11px; border-radius: 999px; font-weight: 500; }
+  .vibe-red { background: rgba(255,107,107,0.12); color: #ff6b6b; }
+  .vibe-green { background: rgba(107,255,157,0.12); color: #6bff9d; }
+  .vibe-yellow { background: rgba(255,214,79,0.12); color: #ffd64f; }
+  .vibe-blue { background: rgba(107,157,255,0.12); color: #6b9dff; }
+  .vibe-pink { background: rgba(255,107,157,0.12); color: #ff6b9d; }
+
+  .replies-lbl { font-size: 11px; font-family: 'Syne', sans-serif; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 9px; }
+  .reply {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.25rem; margin-bottom: 9px;
+    cursor: pointer; transition: all 0.2s; position: relative;
+  }
+  .reply:hover { border-color: var(--accent3); transform: translateY(-1px); }
+  .reply-type { font-size: 10px; font-family: 'Syne', sans-serif; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+  .reply-text { font-size: 14px; line-height: 1.6; color: var(--text); font-weight: 300; }
+  .copy-hint { position: absolute; top: 10px; right: 12px; font-size: 11px; color: var(--text3); opacity: 0; transition: opacity 0.2s; }
+  .reply:hover .copy-hint { opacity: 1; }
+
+  .share-btn {
+    width: 100%; margin-top: 10px; padding: 0.85rem;
+    background: var(--surface2); border: 0.5px solid var(--border);
+    border-radius: var(--radius); color: var(--accent);
+    font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .share-btn:hover { border-color: var(--accent); box-shadow: 0 4px 20px rgba(200,245,66,0.1); }
+  .reset-btn {
+    width: 100%; margin-top: 10px; padding: 0.75rem;
+    background: transparent; border: 0.5px solid var(--border);
+    border-radius: var(--radius); color: var(--text2); font-size: 14px;
+    cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+  }
+  .reset-btn:hover { color: var(--text); border-color: var(--text3); }
+
+  .pw-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(14px);
+    z-index: 200; align-items: center; justify-content: center; padding: 1.5rem;
+  }
+  .pw-bg.open { display: flex; }
+  .pw-modal {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 24px; padding: 2rem; max-width: 400px; width: 100%;
+    text-align: center; animation: fadeUp 0.35s ease both; position: relative; overflow: hidden;
+  }
+  .pw-modal::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3)); }
+  .pw-emoji { font-size: 44px; display: block; margin-bottom: 1rem; }
+  .pw-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 8px; }
+  .pw-title span { color: var(--accent); }
+  .pw-sub { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 1.25rem; font-weight: 300; }
+  .pw-price { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 1.1rem; }
+  .pw-amount { font-family: 'Syne', sans-serif; font-size: 2.8rem; font-weight: 800; color: var(--accent); letter-spacing: -0.04em; }
+  .pw-period { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .pw-features { text-align: left; margin-bottom: 1.25rem; }
+  .pw-feat { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); padding: 4px 0; }
+  .pw-feat::before { content: '✓'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+  .pw-btn {
+    width: 100%; padding: 1rem; background: var(--accent); color: #0a0a0f;
+    border: none; border-radius: 999px; font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-bottom: 10px;
+  }
+  .pw-btn:hover { box-shadow: 0 8px 25px rgba(200,245,66,0.3); }
+  .pw-skip { background: none; border: none; font-size: 12px; color: var(--text3); cursor: pointer; }
+  .pw-skip:hover { color: var(--text2); }
+
+  .toast {
+    position: fixed; bottom: 1.5rem; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent); color: #0a0a0f;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    padding: 9px 20px; border-radius: 999px;
+    opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+  @keyframes bounce { 0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)} }
+</style>
+</head>
+<body>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+
+<nav>
+  <div class="nav-logo">decode<span>.</span>ai</div>
+  <div class="nav-right">
+    <div class="usage-pill">
+      <div class="usage-dots">
+        <div class="udot" id="d1"></div>
+        <div class="udot" id="d2"></div>
+        <div class="udot" id="d3"></div>
+      </div>
+      <span id="usageTxt">3 free left</span>
+    </div>
+    <button class="nav-pro" onclick="openPW()">Pro ✨</button>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="header">
+    <div class="logo-badge"><span class="badge-dot"></span> AI-POWERED · FREE TO TRY</div>
+    <h1>what did they<br><span class="accent">actually mean?</span></h1>
+    <p class="sub">Paste any confusing text. Get the real meaning + 3 perfect replies. No more overthinking.</p>
+    <div class="social-proof">
+      <div class="sp-avatars">
+        <div class="sp-av" style="background:#ff6b9d">T</div>
+        <div class="sp-av" style="background:#6b9dff">A</div>
+        <div class="sp-av" style="background:#c8f542;color:#0a0a0f">R</div>
+        <div class="sp-av" style="background:#a78bfa">S</div>
+        <div class="sp-av" style="background:#ff9d6b">M</div>
+      </div>
+      <div class="sp-text">
+        <span class="sp-count">2,400+</span> overthinkers decoded today
+        <div class="sp-stars">★★★★★ <span>4.9 rating</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-box" id="inputSection">
+    <label class="lbl">paste the message here</label>
+    <textarea id="msgInput" placeholder='"ok cool"  ·  "we should hang out sometime"  ·  "seen 👀"  ·  "lol k" ...'></textarea>
+    <div class="who-row">
+      <button class="who-chip sel" data-who="crush">💘 Crush</button>
+      <button class="who-chip" data-who="ex">💔 Ex</button>
+      <button class="who-chip" data-who="friend">👯 Friend</button>
+      <button class="who-chip" data-who="situationship">🌀 Situationship</button>
+      <button class="who-chip" data-who="parent">👨‍👩‍👧 Parent</button>
+      <button class="who-chip" data-who="coworker">💼 Coworker</button>
+    </div>
+    <button class="decode-btn" id="decodeBtn" onclick="runDecode()">🔍 Decode This Text</button>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+    <p class="loading-txt" id="loadTxt">Reading between the lines...</p>
+  </div>
+
+  <div class="results" id="results">
+    <div class="divider-row"><span>the decode</span></div>
+    <div class="decode-card">
+      <div class="card-lbl">🔮 what they really mean</div>
+      <div class="card-text" id="decodeText"></div>
+      <div class="vibes" id="vibeRow"></div>
+    </div>
+    <div class="divider-row"><span>your 3 perfect replies</span></div>
+    <p class="replies-lbl">tap any reply to copy it instantly 👇</p>
+    <div id="repliesWrap"></div>
+    <button class="share-btn" onclick="shareResult()">📸 Share my decode result</button>
+    <button class="reset-btn" onclick="resetTool()">← Decode another text</button>
+  </div>
+</div>
+
+<div class="pw-bg" id="pwBg">
+  <div class="pw-modal">
+    <span class="pw-emoji">🔮</span>
+    <h2 class="pw-title">you've used your<br><span>3 free decodes</span></h2>
+    <p class="pw-sub">Upgrade to Pro for unlimited decodes every day. Your crush's next text doesn't stand a chance.</p>
+    <div class="pw-price">
+      <div class="pw-amount">₹99</div>
+      <div class="pw-period">per month · cancel anytime</div>
+    </div>
+    <div class="pw-features">
+      <div class="pw-feat">Unlimited AI decodes every day</div>
+      <div class="pw-feat">Priority response speed</div>
+      <div class="pw-feat">Save your decode history</div>
+      <div class="pw-feat">Early access to new features</div>
+    </div>
+    <button class="pw-btn" onclick="goToPro()">✨ Upgrade to Pro — ₹99/mo</button>
+    <button class="pw-skip" onclick="closePW()">maybe later</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const GUMROAD_LINK = "https://patiltanvi.gumroad.com/l/ottnk";
+  const FREE_LIMIT = 3;
+  const PUBLIC_API_KEY = "AIzaSyCcCKBQ2_ko3MHhVJP-Ty1hUhaMjphsZ3E";
+  const MODEL_CANDIDATES = ["gemma-3-4b-it", "gemini-2.0-flash"];
+
+  let usageCount = parseInt(localStorage.getItem("decodeCount") || "0");
+  let selectedWho = "crush";
+  let pwShown = false;
+  let lastDecode = { meaning: "", vibes: [] };
+  let lastSource = "unknown";
+
+  const loadMsgs = [
+    "Reading between the lines...",
+    "Decoding their energy...",
+    "Consulting the vibe oracle...",
+    "Exposing the truth bestie 👀",
+    "Almost ready..."
+  ];
+
+  const whoLabels = {
+    crush: "crush",
+    ex: "ex",
+    friend: "friend",
+    situationship: "situationship",
+    parent: "parent",
+    coworker: "coworker"
+  };
+
+  updateUsageUI();
+
+  document.querySelectorAll(".who-chip").forEach(c => {
+    c.addEventListener("click", () => {
+      document.querySelectorAll(".who-chip").forEach(x => x.classList.remove("sel"));
+      c.classList.add("sel");
+      selectedWho = c.dataset.who;
+    });
+  });
+
+  document.getElementById("msgInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runDecode();
+  });
+
+  function updateUsageUI() {
+    const rem = Math.max(0, FREE_LIMIT - usageCount);
+    ["d1","d2","d3"].forEach((id, i) => {
+      document.getElementById(id).className = "udot " + (i < usageCount ? "used" : "empty");
+    });
+    const txt = document.getElementById("usageTxt");
+    txt.textContent = rem > 0 ? `${rem} free left` : "Upgrade for more";
+    txt.style.color = rem > 0 ? "" : "var(--accent2)";
+  }
+
+  function normalizeColor(color) {
+    const value = String(color || "").toLowerCase().trim();
+    if (value.includes("green")) return "green";
+    if (value.includes("red")) return "red";
+    if (value.includes("yellow") || value.includes("gold")) return "yellow";
+    if (value.includes("pink") || value.includes("peach")) return "pink";
+    return "blue";
+  }
+
+  function normalizeDecodeData(data, msg, who) {
+    const realMeaning = typeof data?.realMeaning === "string" && data.realMeaning.trim()
+      ? data.realMeaning.trim()
+      : "";
+    const vibes = Array.isArray(data?.vibes) && data.vibes.length
+      ? data.vibes.slice(0, 3).map(v => String(v).trim()).filter(Boolean)
+      : [];
+    const vibeColors = Array.isArray(data?.vibeColors) && data.vibeColors.length
+      ? data.vibeColors.slice(0, vibes.length).map(normalizeColor)
+      : vibes.map(() => "blue");
+    const replies = Array.isArray(data?.replies) && data.replies.length
+      ? data.replies.slice(0, 3).map((reply, i) => ({
+          type: String(reply?.type || `Reply ${i + 1}`).trim(),
+          emoji: String(reply?.emoji || "💬").trim(),
+          text: String(reply?.text || "").trim(),
+          energy: String(reply?.energy || "real response").trim()
+        })).filter(reply => reply.text)
+      : [];
+
+    if (!realMeaning || vibes.length === 0 || replies.length < 3) {
+      throw new Error("AI response was incomplete");
+    }
+
+    return { realMeaning, vibes, vibeColors, replies };
+  }
+
+  async function getDecodeData(prompt) {
+    try {
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 600, temperature: 0.7 }
+      };
+
+      let lastError = null;
+
+      for (const model of MODEL_CANDIDATES) {
+        const resp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${PUBLIC_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          }
+        );
+
+        if (!resp.ok) {
+          let reason = `Decode request failed with status ${resp.status}`;
+          try {
+            const errBody = await resp.json();
+            reason = errBody?.error?.message || errBody?.error || reason;
+          } catch (_) {}
+          lastError = new Error(reason);
+          if (resp.status === 429) continue;
+          throw lastError;
+        }
+
+        const raw = await resp.json();
+        const text = raw.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const start = text.indexOf("{");
+        const end = text.lastIndexOf("}");
+
+        if (start === -1 || end === -1 || end < start) {
+          lastError = new Error("Model did not return a JSON object");
+          continue;
+        }
+
+        return {
+          data: JSON.parse(text.substring(start, end + 1)),
+          source: "ai",
+          model
+        };
+      }
+
+      throw lastError || new Error("All models failed");
+    }
+    catch (err) {
+      throw new Error(err.message || "Live AI request failed");
+    }
+  }
+
+  async function runDecode() {
+    const msg = document.getElementById("msgInput").value.trim();
+    if (!msg) {
+      const ta = document.getElementById("msgInput");
+      ta.style.borderColor = "rgba(255,107,107,0.5)";
+      setTimeout(() => ta.style.borderColor = "", 1000);
+      return;
+    }
+    if (usageCount >= FREE_LIMIT) { openPW(); return; }
+
+    document.getElementById("decodeBtn").disabled = true;
+    const sec = document.getElementById("inputSection");
+    sec.style.opacity = "0.4"; sec.style.pointerEvents = "none";
+    document.getElementById("loading").classList.add("show");
+    document.getElementById("results").classList.remove("show");
+
+    let mi = 0;
+    const interval = setInterval(() => {
+      mi = (mi + 1) % loadMsgs.length;
+      document.getElementById("loadTxt").textContent = loadMsgs[mi];
+    }, 1300);
+
+    const prompt = `You are a Gen Z relationship expert. The user received this text from their ${selectedWho}: "${msg}"
+
+Reply with ONLY a raw JSON object. No markdown, no backticks, no explanation. Just JSON:
+{"realMeaning":"2-3 sentence honest decode in Gen Z bestie tone, be specific and perceptive","vibes":["vibe1","vibe2","vibe3"],"vibeColors":["blue","pink","yellow"],"replies":[{"type":"Soft & Sweet","emoji":"🥺","text":"warm reply","energy":"low-key cute"},{"type":"Confident & Unbothered","emoji":"😏","text":"cool reply","energy":"zero games"},{"type":"Flirty & Bold","emoji":"🔥","text":"bold reply","energy":"rizz activated"}]}
+
+Rules: vibes = short phrases like avoidant, testing you, interested, soft launching, lowkey nervous. vibeColors = only: red green yellow blue pink. Make replies feel natural, tailored to ${selectedWho}. Do not reuse generic stock replies. Make the wording specific to this exact message.`;
+
+    try {
+      const result = await getDecodeData(prompt);
+      const data = normalizeDecodeData(result.data, msg, selectedWho);
+
+      clearInterval(interval);
+      document.getElementById("loading").classList.remove("show");
+
+      usageCount++;
+      localStorage.setItem("decodeCount", usageCount);
+      updateUsageUI();
+
+      lastDecode = { meaning: data.realMeaning, vibes: data.vibes || [] };
+      lastSource = result.source;
+
+      document.getElementById("decodeText").textContent = data.realMeaning;
+
+      const vr = document.getElementById("vibeRow");
+      vr.innerHTML = "";
+      (data.vibes || []).forEach((v, i) => {
+        const c = (data.vibeColors || [])[i] || "blue";
+        const s = document.createElement("span");
+        s.className = `vibe vibe-${c}`;
+        s.textContent = v;
+        vr.appendChild(s);
+      });
+
+      const wrap = document.getElementById("repliesWrap");
+      wrap.innerHTML = "";
+      const colors = ["var(--accent2)","var(--accent3)","var(--accent)"];
+      (data.replies || []).forEach((r, i) => {
+        const el = document.createElement("div");
+        el.className = "reply";
+        el.innerHTML = `
+          <div class="reply-type" style="color:${colors[i]}">${r.emoji} ${r.type}
+            <span style="font-weight:300;font-family:'DM Sans';letter-spacing:0;text-transform:none;font-size:11px;color:var(--text3)"> · ${r.energy}</span>
+          </div>
+          <div class="reply-text">${r.text}</div>
+          <span class="copy-hint">tap to copy</span>`;
+        el.addEventListener("click", () => {
+          navigator.clipboard.writeText(r.text).then(() => {
+            el.style.borderColor = "var(--accent)";
+            setTimeout(() => el.style.borderColor = "", 1500);
+            toast("Copied! 📋");
+          });
+        });
+        wrap.appendChild(el);
+      });
+
+      document.getElementById("results").classList.add("show");
+      document.getElementById("results").scrollIntoView({ behavior: "smooth", block: "start" });
+
+      if (usageCount >= FREE_LIMIT && !pwShown) {
+        pwShown = true;
+        setTimeout(openPW, 4000);
+      }
+
+    } catch (err) {
+      clearInterval(interval);
+      document.getElementById("loading").classList.remove("show");
+      const reason = String(err.message || "");
+      const quotaHit = /quota|resource_exhausted|429|billing/i.test(reason);
+      toast(quotaHit ? "Live AI is rate-limited right now — try again shortly" : "Live AI failed — no fake reply shown");
+    }
+
+    sec.style.opacity = "1"; sec.style.pointerEvents = "auto";
+    document.getElementById("decodeBtn").disabled = false;
+  }
+
+  function shareResult() {
+    const vibes = lastDecode.vibes.join(", ");
+    const meaning = lastDecode.meaning.substring(0, 100);
+    const shareText = `🔮 just decoded a text using decode.ai\n\nvibe check: ${vibes}\n\nwhat it actually meant: "${meaning}..."\n\nfind out what YOUR texts mean 👇\nhttps://patiltanvi.gumroad.com/l/ottnk`;
+    if (navigator.share) {
+      navigator.share({ title: "Decode This Text", text: shareText });
+    } else {
+      navigator.clipboard.writeText(shareText).then(() => toast("Copied to share! Paste it anywhere 📋"));
+    }
+  }
+
+  function resetTool() {
+    document.getElementById("results").classList.remove("show");
+    document.getElementById("msgInput").value = "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (usageCount >= FREE_LIMIT) setTimeout(openPW, 600);
+  }
+
+  function openPW()  { document.getElementById("pwBg").classList.add("open"); }
+  function closePW() { document.getElementById("pwBg").classList.remove("open"); }
+  function goToPro() { window.open(GUMROAD_LINK, "_blank"); closePW(); }
+
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2000);
+  }
+</script>
+</body>
+</html>
